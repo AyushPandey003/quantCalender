@@ -3,11 +3,22 @@ import type { NextRequest } from "next/server"
 import { getCurrentUserPayload } from "@/lib/auth-middleware"
 
 // Define protected routes
-const protectedRoutes = ["/dashboard", "/settings"]
+const protectedRoutes = ["/dashboard", "/settings", "/calendar"]
 const authRoutes = ["/signin", "/signup"]
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Skip middleware for API routes, static files, and other assets
+  if (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/favicon.ico") ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next()
+  }
+
   const userPayload = await getCurrentUserPayload(request)
 
   // Check if the current route is protected

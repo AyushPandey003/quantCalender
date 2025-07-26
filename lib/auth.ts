@@ -1,12 +1,19 @@
-import "server-only"
-
 import { jwtVerify, SignJWT } from "jose"
 import { cookies } from "next/headers"
 import type { NextRequest } from "next/server"
-import { prisma } from "./db"
+import { db } from "./db"
+import { users, userSettings } from "./db/schema"
+import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key-change-this-in-production")
+// Use a more secure secret generation
+const getJWTSecret = () => {
+  const secret = process.env.JWT_SECRET
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET must be at least 32 characters long")
+  }
+  return new TextEncoder().encode(secret)
+}
 
 export interface User {
   id: string
@@ -27,6 +34,8 @@ export interface JWTPayload {
 
 // Generate JWT token
 export async function generateToken(user: User): Promise<string> {
+  const secret = getJWTSecret()
+
   const token = await new SignJWT({
     userId: user.id,
     email: user.email,
@@ -34,7 +43,7 @@ export async function generateToken(user: User): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d") // Token expires in 7 days
-    .sign(JWT_SECRET)
+    .sign(secret)
 
   return token
 }
@@ -42,10 +51,11 @@ export async function generateToken(user: User): Promise<string> {
 // Verify JWT token
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET)
-    
+    const secret = getJWTSecret()
+    const { payload } = await jwtVerify(token, secret)
+
     // Ensure the payload has the required fields
-    if (typeof payload.userId === 'string' && typeof payload.email === 'string') {
+    if (typeof payload.userId === "string" && typeof payload.email === "string") {
       return {
         userId: payload.userId,
         email: payload.email,
@@ -63,9 +73,16 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 // Get current user from request
 export async function getCurrentUser(request?: NextRequest): Promise<User | null> {
   try {
-    const cookieStore = request ? { get: (name: string) => request.cookies.get(name) } : await cookies()
+    let token: string | undefined
 
-    const token = cookieStore.get("auth-token")?.value
+    if (request) {
+      // For middleware/API routes
+      token = request.cookies.get("auth-token")?.value
+    } else {
+      // For server components
+      const cookieStore = await cookies()
+      token = cookieStore.get("auth-token")?.value
+    }
 
     if (!token) {
       return null
@@ -77,18 +94,19 @@ export async function getCurrentUser(request?: NextRequest): Promise<User | null
     }
 
     // Fetch user data from database
-    const dbUser = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        plan: true,
-        createdAt: true,
-        lastLoginAt: true,
-      },
-    })
+    const [dbUser] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        avatar: users.avatar,
+        plan: users.plan,
+        createdAt: users.createdAt,
+        lastLoginAt: users.lastLoginAt,
+      })
+      .from(users)
+      .where(eq(users.id, payload.userId))
+      .limit(1)
 
     if (!dbUser) {
       return null
@@ -134,19 +152,20 @@ export async function clearAuthCookie() {
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
   try {
     // Find user in database
-    const dbUser = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        plan: true,
-        createdAt: true,
-        lastLoginAt: true,
-        passwordHash: true,
-      },
-    })
+    const [dbUser] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        avatar: users.avatar,
+        plan: users.plan,
+        createdAt: users.createdAt,
+        lastLoginAt: users.lastLoginAt,
+        passwordHash: users.passwordHash,
+      })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1)
 
     if (!dbUser) {
       return null
@@ -159,10 +178,7 @@ export async function authenticateUser(email: string, password: string): Promise
     }
 
     // Update last login time
-    await prisma.user.update({
-      where: { id: dbUser.id },
-      data: { lastLoginAt: new Date() },
-    })
+    await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, dbUser.id))
 
     // Convert database user to our User interface
     const user: User = {
@@ -186,9 +202,7 @@ export async function authenticateUser(email: string, password: string): Promise
 export async function createUser(email: string, password: string, name: string): Promise<User | null> {
   try {
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    })
+    const [existingUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)
 
     if (existingUser) {
       return null // User already exists
@@ -198,37 +212,39 @@ export async function createUser(email: string, password: string, name: string):
     const passwordHash = await bcrypt.hash(password, 12)
 
     // Create new user in database
-    const dbUser = await prisma.user.create({
-      data: {
+    const [newUser] = await db
+      .insert(users)
+      .values({
         email,
         name,
         passwordHash,
         plan: "FREE",
         emailVerified: false,
-        settings: {
-          create: {},
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        plan: true,
-        createdAt: true,
-        lastLoginAt: true,
-      },
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        avatar: users.avatar,
+        plan: users.plan,
+        createdAt: users.createdAt,
+        lastLoginAt: users.lastLoginAt,
+      })
+
+    // Create default user settings
+    await db.insert(userSettings).values({
+      userId: newUser.id,
     })
 
     // Convert database user to our User interface
     const user: User = {
-      id: dbUser.id,
-      email: dbUser.email,
-      name: dbUser.name,
-      avatar: dbUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbUser.email}`,
-      plan: dbUser.plan.toLowerCase() as "free" | "pro" | "enterprise",
-      createdAt: dbUser.createdAt.toISOString(),
-      lastLoginAt: dbUser.lastLoginAt?.toISOString() || new Date().toISOString(),
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      avatar: newUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newUser.email}`,
+      plan: newUser.plan.toLowerCase() as "free" | "pro" | "enterprise",
+      createdAt: newUser.createdAt.toISOString(),
+      lastLoginAt: newUser.lastLoginAt?.toISOString() || new Date().toISOString(),
     }
 
     return user
