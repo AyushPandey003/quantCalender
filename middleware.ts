@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUserPayload } from "@/lib/auth-middleware"
 
 // Define protected routes
 const protectedRoutes = ["/dashboard", "/settings"]
@@ -8,7 +8,7 @@ const authRoutes = ["/signin", "/signup"]
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const user = await getCurrentUser(request)
+  const userPayload = await getCurrentUserPayload(request)
 
   // Check if the current route is protected
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
@@ -17,14 +17,14 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route))
 
   // If user is not authenticated and trying to access protected route
-  if (isProtectedRoute && !user) {
+  if (isProtectedRoute && !userPayload) {
     const signInUrl = new URL("/", request.url)
     signInUrl.searchParams.set("redirect", pathname)
     return NextResponse.redirect(signInUrl)
   }
 
   // If user is authenticated and trying to access auth routes
-  if (isAuthRoute && user) {
+  if (isAuthRoute && userPayload) {
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }
 

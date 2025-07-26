@@ -1,6 +1,10 @@
+import "server-only"
+
 import { jwtVerify, SignJWT } from "jose"
 import { cookies } from "next/headers"
 import type { NextRequest } from "next/server"
+import { prisma } from "./db"
+import bcrypt from "bcryptjs"
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key-change-this-in-production")
 
@@ -39,7 +43,17 @@ export async function generateToken(user: User): Promise<string> {
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
-    return payload as JWTPayload
+    
+    // Ensure the payload has the required fields
+    if (typeof payload.userId === 'string' && typeof payload.email === 'string') {
+      return {
+        userId: payload.userId,
+        email: payload.email,
+        iat: payload.iat as number,
+        exp: payload.exp as number,
+      }
+    }
+    return null
   } catch (error) {
     console.error("Token verification failed:", error)
     return null
@@ -62,16 +76,33 @@ export async function getCurrentUser(request?: NextRequest): Promise<User | null
       return null
     }
 
-    // In a real app, you'd fetch user data from database
-    // For demo purposes, we'll return mock data
+    // Fetch user data from database
+    const dbUser = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        plan: true,
+        createdAt: true,
+        lastLoginAt: true,
+      },
+    })
+
+    if (!dbUser) {
+      return null
+    }
+
+    // Convert database user to our User interface
     const user: User = {
-      id: payload.userId,
-      email: payload.email,
-      name: payload.email.split("@")[0],
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${payload.email}`,
-      plan: "pro",
-      createdAt: "2024-01-01T00:00:00Z",
-      lastLoginAt: new Date().toISOString(),
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name,
+      avatar: dbUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbUser.email}`,
+      plan: dbUser.plan.toLowerCase() as "free" | "pro" | "enterprise",
+      createdAt: dbUser.createdAt.toISOString(),
+      lastLoginAt: dbUser.lastLoginAt?.toISOString() || new Date().toISOString(),
     }
 
     return user
@@ -99,58 +130,110 @@ export async function clearAuthCookie() {
   cookieStore.delete("auth-token")
 }
 
-// Mock user database (in production, use a real database)
-const mockUsers: Record<string, User> = {
-  "john@example.com": {
-    id: "1",
-    email: "john@example.com",
-    name: "John Doe",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=john@example.com",
-    plan: "pro",
-    createdAt: "2024-01-01T00:00:00Z",
-    lastLoginAt: new Date().toISOString(),
-  },
-  "jane@example.com": {
-    id: "2",
-    email: "jane@example.com",
-    name: "Jane Smith",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=jane@example.com",
-    plan: "enterprise",
-    createdAt: "2024-01-15T00:00:00Z",
-    lastLoginAt: new Date().toISOString(),
-  },
-}
-
-// Authenticate user (mock implementation)
+// Authenticate user (database implementation)
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
-  // In production, verify password hash against database
-  const user = mockUsers[email]
-  if (user && password === "password123") {
-    return {
-      ...user,
+  try {
+    // Find user in database
+    const dbUser = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        plan: true,
+        createdAt: true,
+        lastLoginAt: true,
+        passwordHash: true,
+      },
+    })
+
+    if (!dbUser) {
+      return null
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, dbUser.passwordHash)
+    if (!isPasswordValid) {
+      return null
+    }
+
+    // Update last login time
+    await prisma.user.update({
+      where: { id: dbUser.id },
+      data: { lastLoginAt: new Date() },
+    })
+
+    // Convert database user to our User interface
+    const user: User = {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name,
+      avatar: dbUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbUser.email}`,
+      plan: dbUser.plan.toLowerCase() as "free" | "pro" | "enterprise",
+      createdAt: dbUser.createdAt.toISOString(),
       lastLoginAt: new Date().toISOString(),
     }
+
+    return user
+  } catch (error) {
+    console.error("Error authenticating user:", error)
+    return null
   }
-  return null
 }
 
-// Create new user (mock implementation)
+// Create new user (database implementation)
 export async function createUser(email: string, password: string, name: string): Promise<User | null> {
-  // In production, hash password and save to database
-  if (mockUsers[email]) {
-    return null // User already exists
-  }
+  try {
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    })
 
-  const newUser: User = {
-    id: Math.random().toString(36).substring(2),
-    email,
-    name,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-    plan: "free",
-    createdAt: new Date().toISOString(),
-    lastLoginAt: new Date().toISOString(),
-  }
+    if (existingUser) {
+      return null // User already exists
+    }
 
-  mockUsers[email] = newUser
-  return newUser
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 12)
+
+    // Create new user in database
+    const dbUser = await prisma.user.create({
+      data: {
+        email,
+        name,
+        passwordHash,
+        plan: "FREE",
+        emailVerified: false,
+        settings: {
+          create: {},
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        plan: true,
+        createdAt: true,
+        lastLoginAt: true,
+      },
+    })
+
+    // Convert database user to our User interface
+    const user: User = {
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name,
+      avatar: dbUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbUser.email}`,
+      plan: dbUser.plan.toLowerCase() as "free" | "pro" | "enterprise",
+      createdAt: dbUser.createdAt.toISOString(),
+      lastLoginAt: dbUser.lastLoginAt?.toISOString() || new Date().toISOString(),
+    }
+
+    return user
+  } catch (error) {
+    console.error("Error creating user:", error)
+    return null
+  }
 }

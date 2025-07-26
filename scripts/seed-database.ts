@@ -41,14 +41,14 @@ async function main() {
 
   // Create symbols
   const symbols = [
-    { symbol: "BTCUSDT", name: "Bitcoin", slug: "bitcoin" },
-    { symbol: "ETHUSDT", name: "Ethereum", slug: "ethereum" },
-    { symbol: "ADAUSDT", name: "Cardano", slug: "cardano" },
-    { symbol: "DOTUSDT", name: "Polkadot", slug: "polkadot" },
-    { symbol: "LINKUSDT", name: "Chainlink", slug: "chainlink" },
-    { symbol: "SOLUSDT", name: "Solana", slug: "solana" },
-    { symbol: "MATICUSDT", name: "Polygon", slug: "polygon" },
-    { symbol: "AVAXUSDT", name: "Avalanche", slug: "avalanche-2" },
+    { symbol: "BTCUSDT", name: "Bitcoin", slug: "bitcoin", category: "cryptocurrency" },
+    { symbol: "ETHUSDT", name: "Ethereum", slug: "ethereum", category: "cryptocurrency" },
+    { symbol: "ADAUSDT", name: "Cardano", slug: "cardano", category: "cryptocurrency" },
+    { symbol: "DOTUSDT", name: "Polkadot", slug: "polkadot", category: "cryptocurrency" },
+    { symbol: "LINKUSDT", name: "Chainlink", slug: "chainlink", category: "cryptocurrency" },
+    { symbol: "SOLUSDT", name: "Solana", slug: "solana", category: "cryptocurrency" },
+    { symbol: "MATICUSDT", name: "Polygon", slug: "polygon", category: "cryptocurrency" },
+    { symbol: "AVAXUSDT", name: "Avalanche", slug: "avalanche-2", category: "cryptocurrency" },
   ]
 
   for (const symbolData of symbols) {
