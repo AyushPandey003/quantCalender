@@ -1,14 +1,6 @@
 "use client"
 
-export interface User {
-  id: string
-  email: string
-  name: string
-  avatar?: string
-  plan: "free" | "pro" | "enterprise"
-  createdAt: string
-  lastLoginAt: string
-}
+import type { User } from "./auth"
 
 export interface Session {
   user: User | null
@@ -16,175 +8,111 @@ export interface Session {
   error: string | null
 }
 
-type SessionSubscriber = (session: Session) => void
-
-class ClientSessionManager {
-  private static instance: ClientSessionManager
+// Client-side session management using Server Actions
+export class SessionManager {
+  private static instance: SessionManager
   private session: Session = {
     user: null,
     isLoading: true,
     error: null,
   }
-  private subscribers: Set<SessionSubscriber> = new Set()
-  private initialized = false
+  private listeners: Set<(session: Session) => void> = new Set()
 
-  static getInstance(): ClientSessionManager {
-    if (!ClientSessionManager.instance) {
-      ClientSessionManager.instance = new ClientSessionManager()
+  static getInstance(): SessionManager {
+    if (!SessionManager.instance) {
+      SessionManager.instance = new SessionManager()
     }
-    return ClientSessionManager.instance
+    return SessionManager.instance
   }
 
-  async initialize(): Promise<void> {
-    if (this.initialized) return
+  subscribe(listener: (session: Session) => void): () => void {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
 
+  private notify() {
+    this.listeners.forEach((listener) => listener(this.session))
+  }
+
+  async initialize() {
     try {
-      this.setSession({ ...this.session, isLoading: true, error: null })
-      
-      // Check for existing session
-      const response = await fetch('/api/auth/session', {
-        credentials: 'include',
-      })
+      this.session = { ...this.session, isLoading: true, error: null }
+      this.notify()
 
-      if (response.ok) {
-        const userData = await response.json()
-        this.setSession({
-          user: userData.user,
-          isLoading: false,
-          error: null,
-        })
+      // Import the server action dynamically to avoid SSR issues
+      const { getCurrentUserAction } = await import("@/lib/actions/auth-actions")
+      const user = await getCurrentUserAction()
+
+      if (user) {
+        this.session = { user, isLoading: false, error: null }
       } else {
-        this.setSession({
-          user: null,
-          isLoading: false,
-          error: null,
-        })
+        this.session = { user: null, isLoading: false, error: null }
       }
     } catch (error) {
-      this.setSession({
+      this.session = {
         user: null,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to initialize session',
-      })
+        error: error instanceof Error ? error.message : "Authentication failed",
+      }
     }
-
-    this.initialized = true
+    this.notify()
   }
 
-  subscribe(callback: SessionSubscriber): () => void {
-    this.subscribers.add(callback)
-    return () => {
-      this.subscribers.delete(callback)
+  async signIn(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { signInAction } = await import("@/lib/actions/auth-actions")
+      const result = await signInAction(email, password)
+
+      if (result.success && result.user) {
+        this.session = { user: result.user, isLoading: false, error: null }
+        this.notify()
+        return { success: true }
+      } else {
+        return { success: false, error: result.error || "Sign in failed" }
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Network error",
+      }
+    }
+  }
+
+  async signUp(email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { signUpAction } = await import("@/lib/actions/auth-actions")
+      const result = await signUpAction(email, password, name)
+
+      if (result.success && result.user) {
+        this.session = { user: result.user, isLoading: false, error: null }
+        this.notify()
+        return { success: true }
+      } else {
+        return { success: false, error: result.error || "Sign up failed" }
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Network error",
+      }
+    }
+  }
+
+  async signOut(): Promise<void> {
+    try {
+      const { signOutAction } = await import("@/lib/actions/auth-actions")
+      await signOutAction()
+
+      this.session = { user: null, isLoading: false, error: null }
+      this.notify()
+    } catch (error) {
+      console.error("Sign out error:", error)
+      this.session = { user: null, isLoading: false, error: null }
+      this.notify()
     }
   }
 
   getSession(): Session {
     return this.session
   }
-
-  private setSession(newSession: Session): void {
-    this.session = newSession
-    this.subscribers.forEach(callback => callback(newSession))
-  }
-
-  async signIn(email: string, password: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      this.setSession({ ...this.session, isLoading: true, error: null })
-
-      const response = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        this.setSession({
-          user: data.user,
-          isLoading: false,
-          error: null,
-        })
-        return { success: true }
-      } else {
-        this.setSession({
-          user: null,
-          isLoading: false,
-          error: data.error || 'Sign in failed',
-        })
-        return { success: false, error: data.error || 'Sign in failed' }
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sign in failed'
-      this.setSession({
-        user: null,
-        isLoading: false,
-        error: errorMessage,
-      })
-      return { success: false, error: errorMessage }
-    }
-  }
-
-  async signUp(email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      this.setSession({ ...this.session, isLoading: true, error: null })
-
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password, name }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        this.setSession({
-          user: data.user,
-          isLoading: false,
-          error: null,
-        })
-        return { success: true }
-      } else {
-        this.setSession({
-          user: null,
-          isLoading: false,
-          error: data.error || 'Sign up failed',
-        })
-        return { success: false, error: data.error || 'Sign up failed' }
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sign up failed'
-      this.setSession({
-        user: null,
-        isLoading: false,
-        error: errorMessage,
-      })
-      return { success: false, error: errorMessage }
-    }
-  }
-
-  async signOut(): Promise<void> {
-    try {
-      await fetch('/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include',
-      })
-    } catch (error) {
-      console.error('Sign out error:', error)
-    } finally {
-      this.setSession({
-        user: null,
-        isLoading: false,
-        error: null,
-      })
-    }
-  }
 }
-
-export const SessionManager = ClientSessionManager

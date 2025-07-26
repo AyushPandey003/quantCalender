@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,12 +14,13 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useAuthContext } from "./auth-provider"
 import { SignInDialog } from "./sign-in-dialog"
-import { Settings, LogOut, Crown, BarChart3 } from "lucide-react"
+import { Settings, LogOut, Crown, BarChart3, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 export function UserMenu() {
   const { user, isAuthenticated, signOut } = useAuthContext()
   const [showSignInDialog, setShowSignInDialog] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   if (!isAuthenticated) {
     return (
@@ -31,7 +32,9 @@ export function UserMenu() {
   }
 
   const handleSignOut = async () => {
-    await signOut()
+    startTransition(async () => {
+      await signOut()
+    })
   }
 
   const getPlanBadge = (plan: string) => {
@@ -56,7 +59,7 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full" disabled={isPending}>
           <Avatar className="h-10 w-10">
             <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.name} />
             <AvatarFallback>
@@ -101,9 +104,18 @@ export function UserMenu() {
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
+        <DropdownMenuItem onClick={handleSignOut} className="text-red-600" disabled={isPending}>
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing out...
+            </>
+          ) : (
+            <>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </>
+          )}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

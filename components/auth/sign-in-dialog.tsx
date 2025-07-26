@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,7 +19,7 @@ interface SignInDialogProps {
 
 export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
   const { signIn, signUp } = useAuthContext()
-  const [isLoading, setIsLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -40,57 +39,53 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError(null)
 
-    const result = await signIn(signInData.email, signInData.password)
+    startTransition(async () => {
+      const result = await signIn(signInData.email, signInData.password)
 
-    if (result.success) {
-      onOpenChange(false)
-      setSignInData({ email: "", password: "" })
-    } else {
-      setError(result.error || "Sign in failed")
-    }
-
-    setIsLoading(false)
+      if (result.success) {
+        onOpenChange(false)
+        setSignInData({ email: "", password: "" })
+      } else {
+        setError(result.error || "Sign in failed")
+      }
+    })
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError(null)
 
     if (signUpData.password !== signUpData.confirmPassword) {
       setError("Passwords do not match")
-      setIsLoading(false)
       return
     }
 
-    const result = await signUp(signUpData.email, signUpData.password, signUpData.name)
+    startTransition(async () => {
+      const result = await signUp(signUpData.email, signUpData.password, signUpData.name)
 
-    if (result.success) {
-      onOpenChange(false)
-      setSignUpData({ name: "", email: "", password: "", confirmPassword: "" })
-    } else {
-      setError(result.error || "Sign up failed")
-    }
-
-    setIsLoading(false)
+      if (result.success) {
+        onOpenChange(false)
+        setSignUpData({ name: "", email: "", password: "", confirmPassword: "" })
+      } else {
+        setError(result.error || "Sign up failed")
+      }
+    })
   }
 
   const handleDemoSignIn = async () => {
-    setIsLoading(true)
     setError(null)
 
-    const result = await signIn("john@example.com", "password123")
+    startTransition(async () => {
+      const result = await signIn("john@example.com", "password123")
 
-    if (result.success) {
-      onOpenChange(false)
-    } else {
-      setError(result.error || "Demo sign in failed")
-    }
-
-    setIsLoading(false)
+      if (result.success) {
+        onOpenChange(false)
+      } else {
+        setError(result.error || "Demo sign in failed")
+      }
+    })
   }
 
   return (
@@ -121,6 +116,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                     onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
                     className="pl-10"
                     required
+                    disabled={isPending}
                   />
                 </div>
               </div>
@@ -137,6 +133,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                     onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
                     className="pl-10 pr-10"
                     required
+                    disabled={isPending}
                   />
                   <Button
                     type="button"
@@ -144,6 +141,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isPending}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -157,8 +155,8 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...
@@ -183,9 +181,9 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
               variant="outline"
               className="w-full bg-transparent"
               onClick={handleDemoSignIn}
-              disabled={isLoading}
+              disabled={isPending}
             >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Demo Account"}
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Demo Account"}
             </Button>
 
             <div className="text-center text-sm text-muted-foreground">
@@ -207,6 +205,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                     onChange={(e) => setSignUpData({ ...signUpData, name: e.target.value })}
                     className="pl-10"
                     required
+                    disabled={isPending}
                   />
                 </div>
               </div>
@@ -223,6 +222,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                     onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
                     className="pl-10"
                     required
+                    disabled={isPending}
                   />
                 </div>
               </div>
@@ -239,6 +239,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                     onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
                     className="pl-10 pr-10"
                     required
+                    disabled={isPending}
                   />
                   <Button
                     type="button"
@@ -246,6 +247,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isPending}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -264,6 +266,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                     onChange={(e) => setSignUpData({ ...signUpData, confirmPassword: e.target.value })}
                     className="pl-10"
                     required
+                    disabled={isPending}
                   />
                 </div>
               </div>
@@ -275,8 +278,8 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating account...
