@@ -28,7 +28,11 @@ export async function createSession(userId: string, userAgent?: string, ipAddres
     })
     .returning()
 
-  return session
+  return {
+    ...session,
+    userAgent: session.userAgent ?? undefined,
+    ipAddress: session.ipAddress ?? undefined,
+  }
 }
 
 // Get session by token
@@ -39,7 +43,13 @@ export async function getSession(token: string): Promise<SessionData | null> {
     .where(and(eq(userSessions.token, token), gt(userSessions.expiresAt, new Date())))
     .limit(1)
 
-  return session || null
+  return session
+    ? {
+        ...session,
+        userAgent: session.userAgent ?? undefined,
+        ipAddress: session.ipAddress ?? undefined,
+      }
+    : null
 }
 
 // Delete session
@@ -54,13 +64,19 @@ export async function deleteUserSessions(userId: string): Promise<void> {
 
 // Clean up expired sessions
 export async function cleanupExpiredSessions(): Promise<void> {
-  await db.delete(userSessions).where(gt(new Date(), userSessions.expiresAt))
+  await db.delete(userSessions).where(gt(userSessions.expiresAt, new Date()))
 }
 
 // Get all active sessions for a user
 export async function getUserSessions(userId: string): Promise<SessionData[]> {
-  return await db
+  const sessions = await db
     .select()
     .from(userSessions)
     .where(and(eq(userSessions.userId, userId), gt(userSessions.expiresAt, new Date())))
+
+  return sessions.map(session => ({
+    ...session,
+    userAgent: session.userAgent ?? undefined,
+    ipAddress: session.ipAddress ?? undefined,
+  }))
 }

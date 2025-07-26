@@ -5,9 +5,24 @@ import { useCalendarStore } from "@/features/calendar/stores/calendar-store"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 
+type OrderBookEntry = {
+  price: number
+  quantity: number
+}
+
+type OrderBook = {
+  timestamp: number
+  asks: OrderBookEntry[]
+  bids: OrderBookEntry[]
+}
+
 export function OrderBookWidget() {
   const { selectedSymbol } = useCalendarStore()
-  const { data: orderBook, isLoading, error } = useOrderBook(selectedSymbol)
+  const { data: orderBook, isLoading, error } = useOrderBook(selectedSymbol) as {
+    data: OrderBook | undefined
+    isLoading: boolean
+    error: unknown
+  }
 
   if (isLoading) {
     return (

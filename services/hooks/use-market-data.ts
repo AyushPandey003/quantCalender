@@ -105,7 +105,6 @@ export function useMarketData(params: UseMarketDataParams) {
       return historicalData
     },
     staleTime: 30_000, // 30 seconds
-    cacheTime: 360_000, // 6 minutes
     refetchInterval: isConnected ? 60_000 : 300_000, // 1 min if connected, 5 min if not
   })
 }
