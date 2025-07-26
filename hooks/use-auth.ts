@@ -1,52 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { SessionManager, type Session } from "@/lib/client-session"
+import { useEffect } from "react"
+import { useSession } from "../lib/client-session"
 
 export function useAuth() {
-  const [session, setSession] = useState<Session>({
-    user: null,
-    isLoading: true,
-    error: null,
-  })
+  const session = useSession()
 
   useEffect(() => {
-    const sessionManager = SessionManager.getInstance()
-
-    // Initialize session
-    sessionManager.initialize()
-
-    // Subscribe to session changes
-    const unsubscribe = sessionManager.subscribe(setSession)
-
-    // Set initial session
-    setSession(sessionManager.getSession())
-
-    return unsubscribe
+    // Refresh user data on mount
+    session.refreshUser()
   }, [])
-
-  const signIn = async (email: string, password: string) => {
-    const sessionManager = SessionManager.getInstance()
-    return await sessionManager.signIn(email, password)
-  }
-
-  const signUp = async (email: string, password: string, name: string) => {
-    const sessionManager = SessionManager.getInstance()
-    return await sessionManager.signUp(email, password, name)
-  }
-
-  const signOut = async () => {
-    const sessionManager = SessionManager.getInstance()
-    await sessionManager.signOut()
-  }
 
   return {
     user: session.user,
     isLoading: session.isLoading,
-    error: session.error,
-    isAuthenticated: !!session.user,
-    signIn,
-    signUp,
-    signOut,
+    isAuthenticated: session.isAuthenticated,
+    signIn: session.signIn,
+    signUp: session.signUp,
+    signOut: session.signOut,
+    refreshUser: session.refreshUser,
   }
 }

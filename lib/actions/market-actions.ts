@@ -1,34 +1,35 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { db } from "@/lib/db"
-import { marketData, watchlists } from "@/lib/db/schema"
+import { db } from "../db"
+import { symbols, marketData, userWatchlists } from "../db/schema"
 import { eq, and, gte, lte, desc } from "drizzle-orm"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUser } from "../auth"
 
-export interface MarketDataPoint {
-  id: string
-  symbolId: string
-  date: string
-  open: number
-  high: number
-  low: number
-  close: number
-  volume: number
-  volatility?: number
-  liquidity?: number
+export interface MarketDataResult {
+  success: boolean
+  message: string
+  data?: any[]
+}
+
+export interface WatchlistResult {
+  success: boolean
+  message: string
+  data?: any[]
 }
 
 export async function getMarketDataAction(
   symbolId: string,
-  startDate: string,
-  endDate: string,
-): Promise<MarketDataPoint[]> {
+  startDate: Date,
+  endDate: Date,
+  timeframe = "1d",
+): Promise<MarketDataResult> {
   try {
     const data = await db
       .select({
         id: marketData.id,
         symbolId: marketData.symbolId,
+        timestamp: marketData.timestamp,
         date: marketData.date,
         open: marketData.open,
         high: marketData.high,
@@ -37,105 +38,183 @@ export async function getMarketDataAction(
         volume: marketData.volume,
         volatility: marketData.volatility,
         liquidity: marketData.liquidity,
+        performance: marketData.performance,
+        timeframe: marketData.timeframe,
+        symbol: {
+          id: symbols.id,
+          symbol: symbols.symbol,
+          name: symbols.name,
+          slug: symbols.slug,
+        },
       })
       .from(marketData)
+      .innerJoin(symbols, eq(marketData.symbolId, symbols.id))
       .where(
         and(
           eq(marketData.symbolId, symbolId),
-          gte(marketData.date, new Date(startDate)),
-          lte(marketData.date, new Date(endDate)),
+          gte(marketData.date, startDate),
+          lte(marketData.date, endDate),
+          eq(marketData.timeframe, timeframe),
         ),
       )
-      .orderBy(desc(marketData.date))
-      .limit(1000)
+      .orderBy(marketData.date)
 
-    return data.map((item) => ({
-      ...item,
-      date: item.date.toISOString(),
-      open: Number(item.open),
-      high: Number(item.high),
-      low: Number(item.low),
-      close: Number(item.close),
-      volume: Number(item.volume),
-      volatility: item.volatility ? Number(item.volatility) : undefined,
-      liquidity: item.liquidity ? Number(item.liquidity) : undefined,
-    }))
+    return {
+      success: true,
+      message: "Market data retrieved successfully",
+      data,
+    }
   } catch (error) {
-    console.error("Error fetching market data:", error)
-    return []
+    console.error("Get market data error:", error)
+    return {
+      success: false,
+      message: "Failed to retrieve market data",
+    }
   }
 }
 
-export async function addToWatchlistAction(symbolId: string): Promise<{ success: boolean; error?: string }> {
+export async function addToWatchlistAction(symbolId: string): Promise<WatchlistResult> {
   try {
     const user = await getCurrentUser()
-
     if (!user) {
-      return { success: false, error: "Authentication required" }
+      return {
+        success: false,
+        message: "Authentication required",
+      }
     }
 
     // Check if already in watchlist
-    const existing = await db
+    const [existing] = await db
       .select()
-      .from(watchlists)
-      .where(and(eq(watchlists.userId, user.id), eq(watchlists.symbolId, symbolId)))
+      .from(userWatchlists)
+      .where(and(eq(userWatchlists.userId, user.id), eq(userWatchlists.symbolId, symbolId)))
       .limit(1)
 
-    if (existing.length > 0) {
-      return { success: false, error: "Symbol already in watchlist" }
+    if (existing) {
+      return {
+        success: false,
+        message: "Symbol already in watchlist",
+      }
     }
 
-    await db.insert(watchlists).values({
+    await db.insert(userWatchlists).values({
       userId: user.id,
       symbolId,
     })
 
     revalidatePath("/dashboard")
-    revalidatePath("/settings")
+    revalidatePath("/market")
 
-    return { success: true }
+    return {
+      success: true,
+      message: "Added to watchlist successfully",
+    }
   } catch (error) {
-    console.error("Error adding to watchlist:", error)
-    return { success: false, error: "Failed to add to watchlist" }
+    console.error("Add to watchlist error:", error)
+    return {
+      success: false,
+      message: "Failed to add to watchlist",
+    }
   }
 }
 
-export async function removeFromWatchlistAction(symbolId: string): Promise<{ success: boolean; error?: string }> {
+export async function removeFromWatchlistAction(symbolId: string): Promise<WatchlistResult> {
   try {
     const user = await getCurrentUser()
-
     if (!user) {
-      return { success: false, error: "Authentication required" }
+      return {
+        success: false,
+        message: "Authentication required",
+      }
     }
 
-    await db.delete(watchlists).where(and(eq(watchlists.userId, user.id), eq(watchlists.symbolId, symbolId)))
+    await db
+      .delete(userWatchlists)
+      .where(and(eq(userWatchlists.userId, user.id), eq(userWatchlists.symbolId, symbolId)))
 
     revalidatePath("/dashboard")
-    revalidatePath("/settings")
+    revalidatePath("/market")
 
-    return { success: true }
+    return {
+      success: true,
+      message: "Removed from watchlist successfully",
+    }
   } catch (error) {
-    console.error("Error removing from watchlist:", error)
-    return { success: false, error: "Failed to remove from watchlist" }
+    console.error("Remove from watchlist error:", error)
+    return {
+      success: false,
+      message: "Failed to remove from watchlist",
+    }
   }
 }
 
-export async function getUserWatchlistAction(): Promise<string[]> {
+export async function getUserWatchlistAction(): Promise<WatchlistResult> {
   try {
     const user = await getCurrentUser()
-
     if (!user) {
-      return []
+      return {
+        success: false,
+        message: "Authentication required",
+      }
     }
 
-    const watchlistItems = await db
-      .select({ symbolId: watchlists.symbolId })
-      .from(watchlists)
-      .where(eq(watchlists.userId, user.id))
+    const watchlist = await db
+      .select({
+        id: userWatchlists.id,
+        symbolId: userWatchlists.symbolId,
+        createdAt: userWatchlists.createdAt,
+        symbol: {
+          id: symbols.id,
+          symbol: symbols.symbol,
+          name: symbols.name,
+          slug: symbols.slug,
+          category: symbols.category,
+        },
+      })
+      .from(userWatchlists)
+      .innerJoin(symbols, eq(userWatchlists.symbolId, symbols.id))
+      .where(eq(userWatchlists.userId, user.id))
+      .orderBy(desc(userWatchlists.createdAt))
 
-    return watchlistItems.map((item) => item.symbolId)
+    return {
+      success: true,
+      message: "Watchlist retrieved successfully",
+      data: watchlist,
+    }
   } catch (error) {
-    console.error("Error fetching watchlist:", error)
-    return []
+    console.error("Get watchlist error:", error)
+    return {
+      success: false,
+      message: "Failed to retrieve watchlist",
+    }
+  }
+}
+
+export async function getAllSymbolsAction() {
+  try {
+    const allSymbols = await db
+      .select({
+        id: symbols.id,
+        symbol: symbols.symbol,
+        name: symbols.name,
+        slug: symbols.slug,
+        category: symbols.category,
+        isActive: symbols.isActive,
+      })
+      .from(symbols)
+      .where(eq(symbols.isActive, true))
+      .orderBy(symbols.name)
+
+    return {
+      success: true,
+      message: "Symbols retrieved successfully",
+      data: allSymbols,
+    }
+  } catch (error) {
+    console.error("Get symbols error:", error)
+    return {
+      success: false,
+      message: "Failed to retrieve symbols",
+    }
   }
 }

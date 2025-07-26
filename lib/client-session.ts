@@ -1,118 +1,130 @@
 "use client"
 
-import type { User } from "./auth"
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
+import { signInAction, signUpAction, signOutAction, getCurrentUserAction } from "./actions/auth-actions"
 
-export interface Session {
+interface User {
+  id: string
+  email: string
+  name: string
+  avatar?: string
+  plan: string
+}
+
+interface SessionState {
   user: User | null
   isLoading: boolean
-  error: string | null
+  isAuthenticated: boolean
+  signIn: (email: string, password: string) => Promise<{ success: boolean; message: string }>
+  signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; message: string }>
+  signOut: () => Promise<void>
+  refreshUser: () => Promise<void>
+  setUser: (user: User | null) => void
 }
 
-// Client-side session management using Server Actions
-export class SessionManager {
-  private static instance: SessionManager
-  private session: Session = {
-    user: null,
-    isLoading: true,
-    error: null,
-  }
-  private listeners: Set<(session: Session) => void> = new Set()
+export const useSession = create<SessionState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      isLoading: false,
+      isAuthenticated: false,
 
-  static getInstance(): SessionManager {
-    if (!SessionManager.instance) {
-      SessionManager.instance = new SessionManager()
-    }
-    return SessionManager.instance
-  }
+      signIn: async (email: string, password: string) => {
+        set({ isLoading: true })
+        try {
+          const result = await signInAction(email, password)
+          if (result.success && result.user) {
+            set({
+              user: result.user,
+              isAuthenticated: true,
+              isLoading: false,
+            })
+          } else {
+            set({ isLoading: false })
+          }
+          return { success: result.success, message: result.message }
+        } catch (error) {
+          set({ isLoading: false })
+          return { success: false, message: "An error occurred during sign in" }
+        }
+      },
 
-  subscribe(listener: (session: Session) => void): () => void {
-    this.listeners.add(listener)
-    return () => this.listeners.delete(listener)
-  }
+      signUp: async (email: string, password: string, name: string) => {
+        set({ isLoading: true })
+        try {
+          const result = await signUpAction(email, password, name)
+          if (result.success && result.user) {
+            set({
+              user: result.user,
+              isAuthenticated: true,
+              isLoading: false,
+            })
+          } else {
+            set({ isLoading: false })
+          }
+          return { success: result.success, message: result.message }
+        } catch (error) {
+          set({ isLoading: false })
+          return { success: false, message: "An error occurred during sign up" }
+        }
+      },
 
-  private notify() {
-    this.listeners.forEach((listener) => listener(this.session))
-  }
+      signOut: async () => {
+        set({ isLoading: true })
+        try {
+          await signOutAction()
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          })
+        } catch (error) {
+          console.error("Sign out error:", error)
+          set({ isLoading: false })
+        }
+      },
 
-  async initialize() {
-    try {
-      this.session = { ...this.session, isLoading: true, error: null }
-      this.notify()
+      refreshUser: async () => {
+        set({ isLoading: true })
+        try {
+          const user = await getCurrentUserAction()
+          set({
+            user: user
+              ? {
+                  id: user.id,
+                  email: user.email,
+                  name: user.name,
+                  avatar: user.avatar,
+                  plan: user.plan,
+                }
+              : null,
+            isAuthenticated: !!user,
+            isLoading: false,
+          })
+        } catch (error) {
+          console.error("Refresh user error:", error)
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          })
+        }
+      },
 
-      // Import the server action dynamically to avoid SSR issues
-      const { getCurrentUserAction } = await import("@/lib/actions/auth-actions")
-      const user = await getCurrentUserAction()
-
-      if (user) {
-        this.session = { user, isLoading: false, error: null }
-      } else {
-        this.session = { user: null, isLoading: false, error: null }
-      }
-    } catch (error) {
-      this.session = {
-        user: null,
-        isLoading: false,
-        error: error instanceof Error ? error.message : "Authentication failed",
-      }
-    }
-    this.notify()
-  }
-
-  async signIn(email: string, password: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      const { signInAction } = await import("@/lib/actions/auth-actions")
-      const result = await signInAction(email, password)
-
-      if (result.success && result.user) {
-        this.session = { user: result.user, isLoading: false, error: null }
-        this.notify()
-        return { success: true }
-      } else {
-        return { success: false, error: result.error || "Sign in failed" }
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Network error",
-      }
-    }
-  }
-
-  async signUp(email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      const { signUpAction } = await import("@/lib/actions/auth-actions")
-      const result = await signUpAction(email, password, name)
-
-      if (result.success && result.user) {
-        this.session = { user: result.user, isLoading: false, error: null }
-        this.notify()
-        return { success: true }
-      } else {
-        return { success: false, error: result.error || "Sign up failed" }
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Network error",
-      }
-    }
-  }
-
-  async signOut(): Promise<void> {
-    try {
-      const { signOutAction } = await import("@/lib/actions/auth-actions")
-      await signOutAction()
-
-      this.session = { user: null, isLoading: false, error: null }
-      this.notify()
-    } catch (error) {
-      console.error("Sign out error:", error)
-      this.session = { user: null, isLoading: false, error: null }
-      this.notify()
-    }
-  }
-
-  getSession(): Session {
-    return this.session
-  }
-}
+      setUser: (user: User | null) => {
+        set({
+          user,
+          isAuthenticated: !!user,
+        })
+      },
+    }),
+    {
+      name: "session-storage",
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    },
+  ),
+)
