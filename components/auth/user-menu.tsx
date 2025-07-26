@@ -77,6 +77,12 @@ export function UserMenu() {
               {user?.plan && getPlanBadge(user.plan)}
             </div>
             <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium leading-none">{user?.name}</p>
+              {user?.plan && getPlanBadge(user.plan)}
+            </div>
+            <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -84,14 +90,27 @@ export function UserMenu() {
           <Link href="/dashboard" className="flex items-center">
             <BarChart3 className="mr-2 h-4 w-4" />
             Dashboard
+          <Link href="/dashboard" className="flex items-center">
+            <BarChart3 className="mr-2 h-4 w-4" />
+            Dashboard
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/settings" className="flex items-center">
+          <Link href="/settings" className="flex items-center">
             <Settings className="mr-2 h-4 w-4" />
+            Settings
             Settings
           </Link>
         </DropdownMenuItem>
+        {user?.plan === "pro" || user?.plan === "enterprise" ? (
+          <DropdownMenuItem asChild>
+            <Link href="/premium" className="flex items-center">
+              <Crown className="mr-2 h-4 w-4" />
+              Premium Features
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         {user?.plan === "pro" || user?.plan === "enterprise" ? (
           <DropdownMenuItem asChild>
             <Link href="/premium" className="flex items-center">

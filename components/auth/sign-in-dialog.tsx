@@ -9,7 +9,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuthContext } from "./auth-provider"
+import { Eye, EyeOff, Loader2, Mail, Lock, User, AlertCircle } from "lucide-react"
+
+interface SignInDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
 import { useAuthContext } from "./auth-provider"
 import { Eye, EyeOff, Loader2, Mail, Lock, User, AlertCircle } from "lucide-react"
 
@@ -25,16 +34,20 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
   const [showPassword, setShowPassword] = useState(false)
 
   // Sign in form state
+  // Sign in form state
   const [signInData, setSignInData] = useState({
     email: "",
     password: "",
   })
 
   // Sign up form state
+  // Sign up form state
   const [signUpData, setSignUpData] = useState({
+    name: "",
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
     confirmPassword: "",
   })
 
@@ -96,16 +109,22 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Welcome to Market Explorer</DialogTitle>
           <DialogDescription>Sign in to your account or create a new one to get started</DialogDescription>
+          <DialogTitle>Welcome to Market Explorer</DialogTitle>
+          <DialogDescription>Sign in to your account or create a new one to get started</DialogDescription>
         </DialogHeader>
+
 
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="signin" className="space-y-4">
             <form onSubmit={handleSignIn} className="space-y-4">
@@ -192,6 +211,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
               Demo credentials: john@example.com / password123
             </div>
           </TabsContent>
+
 
           <TabsContent value="signup" className="space-y-4">
             <form onSubmit={handleSignUp} className="space-y-4">
