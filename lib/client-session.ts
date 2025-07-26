@@ -1,5 +1,7 @@
 "use client"
 
+import { signIn, signUp, signOut, getCurrentUserAction } from '@/lib/actions/auth'
+
 export interface User {
   id: string
   email: string
@@ -41,25 +43,14 @@ class ClientSessionManager {
     try {
       this.setSession({ ...this.session, isLoading: true, error: null })
       
-      // Check for existing session
-      const response = await fetch('/api/auth/session', {
-        credentials: 'include',
+      // Check for existing session using server action
+      const { user } = await getCurrentUserAction()
+      
+      this.setSession({
+        user,
+        isLoading: false,
+        error: null,
       })
-
-      if (response.ok) {
-        const userData = await response.json()
-        this.setSession({
-          user: userData.user,
-          isLoading: false,
-          error: null,
-        })
-      } else {
-        this.setSession({
-          user: null,
-          isLoading: false,
-          error: null,
-        })
-      }
     } catch (error) {
       this.setSession({
         user: null,
@@ -91,20 +82,11 @@ class ClientSessionManager {
     try {
       this.setSession({ ...this.session, isLoading: true, error: null })
 
-      const response = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      })
+      const result = await signIn(email, password)
 
-      const data = await response.json()
-
-      if (response.ok) {
+      if (result.success) {
         this.setSession({
-          user: data.user,
+          user: result.user || null,
           isLoading: false,
           error: null,
         })
@@ -113,9 +95,9 @@ class ClientSessionManager {
         this.setSession({
           user: null,
           isLoading: false,
-          error: data.error || 'Sign in failed',
+          error: result.error || 'Sign in failed',
         })
-        return { success: false, error: data.error || 'Sign in failed' }
+        return { success: false, error: result.error || 'Sign in failed' }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign in failed'
@@ -132,20 +114,11 @@ class ClientSessionManager {
     try {
       this.setSession({ ...this.session, isLoading: true, error: null })
 
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password, name }),
-      })
+      const result = await signUp(email, password, name)
 
-      const data = await response.json()
-
-      if (response.ok) {
+      if (result.success) {
         this.setSession({
-          user: data.user,
+          user: result.user || null,
           isLoading: false,
           error: null,
         })
@@ -154,9 +127,9 @@ class ClientSessionManager {
         this.setSession({
           user: null,
           isLoading: false,
-          error: data.error || 'Sign up failed',
+          error: result.error || 'Sign up failed',
         })
-        return { success: false, error: data.error || 'Sign up failed' }
+        return { success: false, error: result.error || 'Sign up failed' }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sign up failed'
@@ -171,10 +144,7 @@ class ClientSessionManager {
 
   async signOut(): Promise<void> {
     try {
-      await fetch('/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include',
-      })
+      await signOut()
     } catch (error) {
       console.error('Sign out error:', error)
     } finally {
