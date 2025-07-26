@@ -1,0 +1,49 @@
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { Providers } from "@/app/providers"
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+import { ThemeProvider } from "@/components/theme-provider"
+import { AuthProvider } from "@/components/auth/auth-provider"
+
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  title: "Market Seasonality Explorer",
+  description: "Advanced calendar analytics platform for volatility, liquidity, and performance data",
+    generator: 'v0.dev'
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <AuthProvider>
+            <Providers>
+              <SidebarProvider defaultOpen={true}>
+                <AppSidebar />
+                <SidebarInset>
+                  <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                    <SidebarTrigger className="-ml-1" />
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-lg font-semibold">Market Seasonality Explorer</h1>
+                    </div>
+                  </header>
+                  <main className="flex-1 overflow-auto">{children}</main>
+                </SidebarInset>
+              </SidebarProvider>
+            </Providers>
+          </AuthProvider>
+        </ThemeProvider>
+      </body>
+    </html>
+  )
+}
