@@ -22,6 +22,10 @@ type SessionSubscriber = (session: Session) => void
 
 class ClientSessionManager {
   private static instance: ClientSessionManager
+type SessionSubscriber = (session: Session) => void
+
+class ClientSessionManager {
+  private static instance: ClientSessionManager
   private session: Session = {
     user: null,
     isLoading: true,
@@ -29,13 +33,22 @@ class ClientSessionManager {
   }
   private subscribers: Set<SessionSubscriber> = new Set()
   private initialized = false
+  private subscribers: Set<SessionSubscriber> = new Set()
+  private initialized = false
 
+  static getInstance(): ClientSessionManager {
+    if (!ClientSessionManager.instance) {
+      ClientSessionManager.instance = new ClientSessionManager()
   static getInstance(): ClientSessionManager {
     if (!ClientSessionManager.instance) {
       ClientSessionManager.instance = new ClientSessionManager()
     }
     return ClientSessionManager.instance
+    return ClientSessionManager.instance
   }
+
+  async initialize(): Promise<void> {
+    if (this.initialized) return
 
   async initialize(): Promise<void> {
     if (this.initialized) return
@@ -53,8 +66,30 @@ class ClientSessionManager {
       })
     } catch (error) {
       this.setSession({
+      this.setSession({
         user: null,
         isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to initialize session',
+      })
+    }
+
+    this.initialized = true
+  }
+
+  subscribe(callback: SessionSubscriber): () => void {
+    this.subscribers.add(callback)
+    return () => {
+      this.subscribers.delete(callback)
+    }
+  }
+
+  getSession(): Session {
+    return this.session
+  }
+
+  private setSession(newSession: Session): void {
+    this.session = newSession
+    this.subscribers.forEach(callback => callback(newSession))
         error: error instanceof Error ? error.message : 'Failed to initialize session',
       })
     }
@@ -107,6 +142,13 @@ class ClientSessionManager {
         error: errorMessage,
       })
       return { success: false, error: errorMessage }
+      const errorMessage = error instanceof Error ? error.message : 'Sign in failed'
+      this.setSession({
+        user: null,
+        isLoading: false,
+        error: errorMessage,
+      })
+      return { success: false, error: errorMessage }
     }
   }
 
@@ -139,6 +181,13 @@ class ClientSessionManager {
         error: errorMessage,
       })
       return { success: false, error: errorMessage }
+      const errorMessage = error instanceof Error ? error.message : 'Sign up failed'
+      this.setSession({
+        user: null,
+        isLoading: false,
+        error: errorMessage,
+      })
+      return { success: false, error: errorMessage }
     }
   }
 
@@ -153,8 +202,18 @@ class ClientSessionManager {
         isLoading: false,
         error: null,
       })
+      console.error('Sign out error:', error)
+    } finally {
+      this.setSession({
+        user: null,
+        isLoading: false,
+        error: null,
+      })
     }
   }
+}
+
+export const SessionManager = ClientSessionManager
 }
 
 export const SessionManager = ClientSessionManager
