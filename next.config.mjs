@@ -1,17 +1,6 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
-  },
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
-  },
+const nextConfig ={
+
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

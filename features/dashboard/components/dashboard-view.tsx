@@ -24,8 +24,8 @@ export function DashboardView() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Real-time Order Book</CardTitle>
-            <CardDescription>Live market depth and liquidity data</CardDescription>
+            <CardTitle>Order Book Analysis</CardTitle>
+            <CardDescription>Market depth and liquidity analysis</CardDescription>
           </CardHeader>
           <CardContent>
             <OrderBookWidget />

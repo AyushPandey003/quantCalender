@@ -70,7 +70,6 @@ export function useMarketMetrics(symbol: string) {
       return mockMetrics
     },
     staleTime: isConnected ? 5_000 : 30_000, // 5s if connected, 30s if not
-    cacheTime: 360_000,
     refetchInterval: isConnected ? 10_000 : 30_000, // 10s if connected, 30s if not
   })
 }

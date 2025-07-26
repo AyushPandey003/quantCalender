@@ -1,8 +1,9 @@
+import "server-only"
 import { jwtVerify, SignJWT } from "jose"
 import { cookies } from "next/headers"
 import type { NextRequest } from "next/server"
-import { db } from "./db"
 import { users, userSettings } from "./db/schema"
+import { db } from "./db"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
@@ -252,4 +253,5 @@ export async function createUser(email: string, password: string, name: string):
     console.error("Error creating user:", error)
     return null
   }
+  return null
 }

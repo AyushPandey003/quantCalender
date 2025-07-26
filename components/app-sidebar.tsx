@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, BarChart3, Settings, Home, TrendingUp, Activity, DollarSign } from "lucide-react"
+import { Calendar, BarChart3, Settings, Home, TrendingUp, Activity, DollarSign, Zap } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -38,6 +38,12 @@ const navigationItems = [
     url: "/dashboard",
     icon: BarChart3,
     description: "Performance metrics overview",
+  },
+  {
+    title: "Market Data",
+    url: "/market",
+    icon: Zap,
+    description: "Real-time price streaming",
   },
   {
     title: "Settings",

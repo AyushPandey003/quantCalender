@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import type { User } from "@/lib/auth"
+import type { User } from "@/lib/client-session"
 
 interface AuthContextType {
   user: User | null
