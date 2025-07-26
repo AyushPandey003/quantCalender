@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useTransition } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,61 +11,43 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { useAuthContext } from "./auth-provider"
-import { SignInDialog } from "./sign-in-dialog"
-import { Settings, LogOut, Crown, BarChart3 } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import { User, Settings, LogOut, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export function UserMenu() {
-  const { user, isAuthenticated, signOut } = useAuthContext()
-  const [showSignInDialog, setShowSignInDialog] = useState(false)
+  const { user, signOut } = useAuth()
+  const [isPending, startTransition] = useTransition()
 
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Button onClick={() => setShowSignInDialog(true)}>Sign In</Button>
-        <SignInDialog open={showSignInDialog} onOpenChange={setShowSignInDialog} />
-      </>
-    )
+  if (!user) {
+    return null
   }
 
-  const handleSignOut = async () => {
-    await signOut()
+  const handleSignOut = () => {
+    startTransition(async () => {
+      try {
+        await signOut()
+        toast.success("Signed out successfully")
+      } catch (error) {
+        toast.error("Failed to sign out")
+      }
+    })
   }
 
-  const getPlanBadge = (plan: string) => {
-    switch (plan) {
-      case "pro":
-        return (
-          <Badge variant="default" className="bg-blue-500">
-            Pro
-          </Badge>
-        )
-      case "enterprise":
-        return (
-          <Badge variant="default" className="bg-purple-500">
-            Enterprise
-          </Badge>
-        )
-      default:
-        return <Badge variant="secondary">Free</Badge>
-    }
-  }
+  const initials = user.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.name} />
-            <AvatarFallback>
-              {user?.name
-                ?.split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()}
-            </AvatarFallback>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+            <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -120,9 +102,9 @@ export function UserMenu() {
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
+        <DropdownMenuItem onClick={handleSignOut} disabled={isPending} className="cursor-pointer">
+          {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
+          <span>Sign Out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

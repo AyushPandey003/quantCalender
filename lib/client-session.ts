@@ -7,12 +7,10 @@ export interface User {
   email: string
   name: string
   avatar?: string
-  plan: "free" | "pro" | "enterprise"
-  createdAt: string
-  lastLoginAt: string
+  plan: string
 }
 
-export interface Session {
+interface SessionState {
   user: User | null
   isLoading: boolean
   error: string | null
