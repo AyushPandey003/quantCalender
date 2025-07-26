@@ -1,6 +1,8 @@
 "use client"
 
-import { Calendar, BarChart3, Settings, Filter, TrendingUp, Activity, DollarSign } from "lucide-react"
+import { Calendar, BarChart3, Settings, Home, TrendingUp, Activity, DollarSign } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   Sidebar,
   SidebarContent,
@@ -16,29 +18,30 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ConnectionStatus } from "@/components/connection-status"
 import { UserMenu } from "@/components/auth/user-menu"
+import { cn } from "@/lib/utils"
 
 const navigationItems = [
   {
+    title: "Home",
+    url: "/",
+    icon: Home,
+    description: "Landing page and overview",
+  },
+  {
     title: "Calendar",
-    url: "#calendar",
+    url: "/calendar",
     icon: Calendar,
     description: "Interactive calendar heatmap",
   },
   {
     title: "Dashboard",
-    url: "#dashboard",
+    url: "/dashboard",
     icon: BarChart3,
     description: "Performance metrics overview",
   },
   {
-    title: "Filters",
-    url: "#filters",
-    icon: Filter,
-    description: "Data filtering options",
-  },
-  {
     title: "Settings",
-    url: "#settings",
+    url: "/settings",
     icon: Settings,
     description: "Application preferences",
   },
@@ -63,6 +66,8 @@ const metricsItems = [
 ]
 
 export function AppSidebar() {
+  const pathname = usePathname()
+
   return (
     <Sidebar variant="inset">
       <SidebarHeader>
@@ -84,11 +89,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.description}>
-                    <a href={item.url}>
+                  <SidebarMenuButton asChild tooltip={item.description} isActive={pathname === item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
