@@ -125,8 +125,10 @@ export function Footer() {
         <Separator className="my-8" />
 
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <div className="text-sm text-muted-foreground">© 2024 Market Seasonality Explorer. All rights reserved.</div>
-          <div className="text-sm text-muted-foreground">Built with Next.js, TypeScript, and Tailwind CSS</div>
+          <div className="text-sm text-muted-foreground">© 2025 Market Seasonality Explorer. All rights reserved.</div>
+          <div className="text-sm text-muted-foreground">
+            Made with ❤️ by Ayush | Built with Next.js, TypeScript, and Tailwind CSS
+          </div>
         </div>
       </div>
     </footer>
