@@ -3,10 +3,12 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { useCalendarStore } from "@/features/calendar/stores/calendar-store"
 import { useMarketData } from "@/services/hooks/use-market-data"
+import { useThemeSettingsContext } from "@/components/theme-settings-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export function PerformanceChart() {
   const { selectedSymbol, dateRange } = useCalendarStore()
+  const { getChartColors } = useThemeSettingsContext()
 
   const { data: marketData, isLoading } = useMarketData({
     symbol: selectedSymbol,
@@ -27,6 +29,8 @@ export function PerformanceChart() {
       volume: item.volume / 1000000, // Convert to millions
     })) || []
 
+  const chartColors = getChartColors()
+
   return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
@@ -44,7 +48,7 @@ export function PerformanceChart() {
           <Line
             type="monotone"
             dataKey="performance"
-            stroke="hsl(var(--primary))"
+            stroke={chartColors[0]}
             strokeWidth={2}
             dot={false}
             name="Performance (%)"
@@ -52,7 +56,7 @@ export function PerformanceChart() {
           <Line
             type="monotone"
             dataKey="volatility"
-            stroke="hsl(var(--destructive))"
+            stroke={chartColors[2]}
             strokeWidth={2}
             dot={false}
             name="Volatility (%)"

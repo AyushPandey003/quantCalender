@@ -5,17 +5,30 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowRight, TrendingUp, BarChart3, Calendar, Zap } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { useThemeSettingsContext } from "@/components/theme-settings-provider"
 
 export function HeroSection() {
+  const { getChartColors, mounted } = useThemeSettingsContext()
+  
+  // Get theme colors, fallback to defaults if not mounted
+  const chartColors = mounted ? getChartColors() : [
+    "hsl(220 70% 50%)", 
+    "hsl(160 60% 45%)", 
+    "hsl(0 70% 50%)"
+  ]
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
 
-      {/* Floating Elements */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-primary/10 rounded-full blur-xl animate-pulse" />
-      <div className="absolute top-40 right-20 w-32 h-32 bg-blue-500/10 rounded-full blur-xl animate-pulse delay-1000" />
-      <div className="absolute bottom-20 left-1/4 w-24 h-24 bg-green-500/10 rounded-full blur-xl animate-pulse delay-2000" />
+      {/* Floating Elements - using dynamic colors */}
+      <div className="absolute top-20 left-10 w-20 h-20 rounded-full blur-xl animate-pulse" 
+           style={{ backgroundColor: `${chartColors[0]}20` }} />
+      <div className="absolute top-40 right-20 w-32 h-32 rounded-full blur-xl animate-pulse delay-1000" 
+           style={{ backgroundColor: `${chartColors[1]}20` }} />
+      <div className="absolute bottom-20 left-1/4 w-24 h-24 rounded-full blur-xl animate-pulse delay-2000" 
+           style={{ backgroundColor: `${chartColors[2]}20` }} />
 
       <div className="container mx-auto px-6 py-24 relative">
         <div className="max-w-4xl mx-auto text-center space-y-8">
@@ -36,7 +49,12 @@ export function HeroSection() {
           >
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
               Market{" "}
-              <span className="bg-gradient-to-r from-primary via-blue-500 to-green-500 bg-clip-text text-transparent">
+              <span 
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: `linear-gradient(to right, hsl(var(--primary)), ${chartColors[1]}, ${chartColors[2]})`
+                }}
+              >
                 Seasonality
               </span>{" "}
               Explorer
@@ -55,15 +73,15 @@ export function HeroSection() {
             className="flex justify-center items-center space-x-8 py-6"
           >
             <div className="flex items-center space-x-2 text-muted-foreground">
-              <Calendar className="w-5 h-5 text-primary" />
+              <Calendar className="w-5 h-5" style={{ color: chartColors[0] }} />
               <span className="text-sm font-medium">Calendar Heatmaps</span>
             </div>
             <div className="flex items-center space-x-2 text-muted-foreground">
-              <TrendingUp className="w-5 h-5 text-blue-500" />
+              <TrendingUp className="w-5 h-5" style={{ color: chartColors[1] }} />
               <span className="text-sm font-medium">Live Data</span>
             </div>
             <div className="flex items-center space-x-2 text-muted-foreground">
-              <BarChart3 className="w-5 h-5 text-green-500" />
+              <BarChart3 className="w-5 h-5" style={{ color: chartColors[2] }} />
               <span className="text-sm font-medium">Advanced Analytics</span>
             </div>
           </motion.div>
@@ -98,11 +116,11 @@ export function HeroSection() {
               <div className="text-sm text-muted-foreground">Cryptocurrencies</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-500">24/7</div>
+              <div className="text-3xl font-bold" style={{ color: chartColors[1] }}>24/7</div>
               <div className="text-sm text-muted-foreground">Real-time Data</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-500">99.9%</div>
+              <div className="text-3xl font-bold" style={{ color: chartColors[2] }}>99.9%</div>
               <div className="text-sm text-muted-foreground">Uptime</div>
             </div>
           </motion.div>

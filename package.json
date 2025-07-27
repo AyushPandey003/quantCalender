@@ -68,6 +68,7 @@
     "sonner": "latest",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "tailwindcss-themeable": "^1.3.0",
     "vaul": "latest",
     "zod": "^4.0.10",
     "zustand": "latest"

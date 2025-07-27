@@ -8,17 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { Monitor, Sun, Moon, Palette, Eye, Type, Zap } from "lucide-react"
-
-const colorSchemes = [
-  { name: "Default", value: "default", colors: ["bg-blue-500", "bg-green-500", "bg-red-500"] },
-  { name: "Ocean", value: "ocean", colors: ["bg-cyan-500", "bg-blue-500", "bg-indigo-500"] },
-  { name: "Forest", value: "forest", colors: ["bg-green-500", "bg-emerald-500", "bg-teal-500"] },
-  { name: "Sunset", value: "sunset", colors: ["bg-orange-500", "bg-red-500", "bg-pink-500"] },
-  { name: "Purple", value: "purple", colors: ["bg-purple-500", "bg-violet-500", "bg-fuchsia-500"] },
-  { name: "Monochrome", value: "mono", colors: ["bg-gray-600", "bg-gray-500", "bg-gray-400"] },
-]
+import { useThemeSettingsContext } from "@/components/theme-settings-provider"
+import { colorSchemes } from "@/lib/themes"
 
 const fontSizes = [
   { name: "Small", value: "small", size: "14px" },
@@ -27,22 +20,13 @@ const fontSizes = [
   { name: "Extra Large", value: "xl", size: "20px" },
 ]
 
-export function ThemeSettings() {
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  const [colorScheme, setColorScheme] = useState("default")
-  const [fontSize, setFontSize] = useState("medium")
-  const [contrast, setContrast] = useState([100])
-  const [reducedMotion, setReducedMotion] = useState(false)
-  const [highContrast, setHighContrast] = useState(false)
-  const [compactMode, setCompactMode] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+export function ThemeSettings() {
+  const { theme, setTheme } = useTheme();
+  const { settings, updateSetting, getChartColors, mounted } = useThemeSettingsContext();
 
   if (!mounted) {
-    return null
+    return null;
   }
 
   return (
@@ -100,8 +84,8 @@ export function ThemeSettings() {
             {colorSchemes.map((scheme) => (
               <Button
                 key={scheme.value}
-                variant={colorScheme === scheme.value ? "default" : "outline"}
-                onClick={() => setColorScheme(scheme.value)}
+                variant={settings.colorScheme === scheme.value ? "default" : "outline"}
+                onClick={() => updateSetting("colorScheme", scheme.value)}
                 className="h-16 flex-col gap-2 relative"
               >
                 <div className="flex gap-1">
@@ -133,7 +117,7 @@ export function ThemeSettings() {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label>Font Size</Label>
-            <Select value={fontSize} onValueChange={setFontSize}>
+            <Select value={settings.fontSize} onValueChange={(value) => updateSetting("fontSize", value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select font size" />
               </SelectTrigger>
@@ -155,10 +139,10 @@ export function ThemeSettings() {
           <div className="space-y-2">
             <Label>Text Contrast</Label>
             <div className="px-3">
-              <Slider value={contrast} onValueChange={setContrast} max={150} min={50} step={10} className="w-full" />
+              <Slider value={settings.contrast} onValueChange={(value) => updateSetting("contrast", value)} max={150} min={50} step={10} className="w-full" />
               <div className="flex justify-between text-sm text-muted-foreground mt-1">
                 <span>Low</span>
-                <span>{contrast[0]}%</span>
+                <span>{settings.contrast[0]}%</span>
                 <span>High</span>
               </div>
             </div>
@@ -181,7 +165,7 @@ export function ThemeSettings() {
               <Label>High Contrast Mode</Label>
               <p className="text-sm text-muted-foreground">Increase contrast for better visibility</p>
             </div>
-            <Switch checked={highContrast} onCheckedChange={setHighContrast} />
+            <Switch checked={settings.highContrast} onCheckedChange={(value) => updateSetting("highContrast", value)} />
           </div>
 
           <div className="flex items-center justify-between">
@@ -189,7 +173,7 @@ export function ThemeSettings() {
               <Label>Reduced Motion</Label>
               <p className="text-sm text-muted-foreground">Minimize animations and transitions</p>
             </div>
-            <Switch checked={reducedMotion} onCheckedChange={setReducedMotion} />
+            <Switch checked={settings.reducedMotion} onCheckedChange={(value) => updateSetting("reducedMotion", value)} />
           </div>
 
           <div className="flex items-center justify-between">
@@ -197,7 +181,7 @@ export function ThemeSettings() {
               <Label>Compact Mode</Label>
               <p className="text-sm text-muted-foreground">Reduce spacing for more content density</p>
             </div>
-            <Switch checked={compactMode} onCheckedChange={setCompactMode} />
+            <Switch checked={settings.compactMode} onCheckedChange={(value) => updateSetting("compactMode", value)} />
           </div>
         </CardContent>
       </Card>
@@ -217,7 +201,10 @@ export function ThemeSettings() {
               <Label>Hardware Acceleration</Label>
               <p className="text-sm text-muted-foreground">Use GPU acceleration for smoother animations</p>
             </div>
-            <Switch defaultChecked />
+            <Switch 
+              checked={settings.hardwareAcceleration} 
+              onCheckedChange={(value) => updateSetting("hardwareAcceleration", value)} 
+            />
           </div>
 
           <div className="flex items-center justify-between">
@@ -225,7 +212,10 @@ export function ThemeSettings() {
               <Label>Smooth Scrolling</Label>
               <p className="text-sm text-muted-foreground">Enable smooth scrolling behavior</p>
             </div>
-            <Switch defaultChecked />
+            <Switch 
+              checked={settings.smoothScrolling} 
+              onCheckedChange={(value) => updateSetting("smoothScrolling", value)} 
+            />
           </div>
         </CardContent>
       </Card>
@@ -239,21 +229,35 @@ export function ThemeSettings() {
         <CardContent>
           <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Sample Dashboard</h3>
-              <Badge>Live Preview</Badge>
+              <h3 className="text-lg font-semibold text-primary">Sample Dashboard</h3>
+              <Badge className="bg-accent text-accent-foreground">Live Preview</Badge>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-background border rounded p-3 text-center">
-                <div className="text-2xl font-bold text-primary">$45,123</div>
-                <div className="text-sm text-muted-foreground">BTC Price</div>
-              </div>
-              <div className="bg-background border rounded p-3 text-center">
-                <div className="text-2xl font-bold text-green-500">+5.2%</div>
-                <div className="text-sm text-muted-foreground">24h Change</div>
-              </div>
-              <div className="bg-background border rounded p-3 text-center">
-                <div className="text-2xl font-bold text-blue-500">2.1M</div>
-                <div className="text-sm text-muted-foreground">Volume</div>
+              {getChartColors().slice(0, 3).map((color, index) => {
+                const labels = ["BTC Price", "24h Change", "Volume"];
+                const values = ["$45,123", "+5.2%", "2.1M"];
+                return (
+                  <div
+                    key={index}
+                    className="border rounded p-3 text-center"
+                    style={{ backgroundColor: color, color: 'white' }}
+                  >
+                    <div className="text-2xl font-bold">{values[index]}</div>
+                    <div className="text-sm opacity-90">{labels[index]}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2 mt-4">
+              <div className="text-sm text-muted-foreground">Chart Colors:</div>
+              <div className="flex gap-1">
+                {getChartColors().map((color, index) => (
+                  <div 
+                    key={index}
+                    className="w-4 h-4 rounded-full border" 
+                    style={{ backgroundColor: color }}
+                  ></div>
+                ))}
               </div>
             </div>
           </div>

@@ -158,3 +158,150 @@
     transform: none;
   }
 }
+
+/* Color Scheme Support */
+/* Default color scheme (blue/green/red) */
+.color-scheme-default {
+  --chart-1: 220 70% 50%; /* Blue */
+  --chart-2: 160 60% 45%; /* Green */
+  --chart-3: 0 70% 50%;   /* Red */
+  --chart-4: 280 65% 60%; /* Purple */
+  --chart-5: 340 75% 55%; /* Pink */
+}
+
+/* Ocean color scheme (cyan/blue/indigo) */
+.color-scheme-ocean {
+  --chart-1: 190 75% 50%; /* Cyan */
+  --chart-2: 220 70% 50%; /* Blue */
+  --chart-3: 240 65% 55%; /* Indigo */
+  --chart-4: 200 70% 45%; /* Light blue */
+  --chart-5: 260 60% 50%; /* Blue-purple */
+}
+
+/* Forest color scheme (green/emerald/teal) */
+.color-scheme-forest {
+  --chart-1: 160 60% 45%; /* Green */
+  --chart-2: 170 70% 40%; /* Emerald */
+  --chart-3: 180 65% 45%; /* Teal */
+  --chart-4: 150 65% 50%; /* Light green */
+  --chart-5: 140 70% 45%; /* Dark green */
+}
+
+/* Sunset color scheme (orange/red/pink) */
+.color-scheme-sunset {
+  --chart-1: 30 80% 55%;  /* Orange */
+  --chart-2: 0 70% 50%;   /* Red */
+  --chart-3: 340 75% 55%; /* Pink */
+  --chart-4: 20 85% 60%;  /* Light orange */
+  --chart-5: 350 80% 50%; /* Red-pink */
+}
+
+/* Purple color scheme (purple/violet/fuchsia) */
+.color-scheme-purple {
+  --chart-1: 280 65% 60%; /* Purple */
+  --chart-2: 260 70% 55%; /* Violet */
+  --chart-3: 300 75% 60%; /* Fuchsia */
+  --chart-4: 270 60% 50%; /* Blue-purple */
+  --chart-5: 290 70% 55%; /* Red-purple */
+}
+
+/* Monochrome color scheme (grays) */
+.color-scheme-mono {
+  --chart-1: 0 0% 40%;    /* Dark gray */
+  --chart-2: 0 0% 50%;    /* Medium gray */
+  --chart-3: 0 0% 60%;    /* Light gray */
+  --chart-4: 0 0% 35%;    /* Darker gray */
+  --chart-5: 0 0% 65%;    /* Lighter gray */
+}
+
+/* High contrast mode */
+.high-contrast {
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  filter: contrast(1.2);
+}
+
+.dark.high-contrast {
+  --border: 0 0% 80%;
+  --input: 0 0% 80%;
+  filter: contrast(1.2);
+}
+
+/* Reduced motion */
+.reduced-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Compact mode */
+.compact-mode {
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 0.75rem;
+  --spacing-lg: 1rem;
+  --spacing-xl: 1.5rem;
+}
+
+.compact-mode .space-y-6 > * + * {
+  margin-top: 1rem !important;
+}
+
+.compact-mode .space-y-4 > * + * {
+  margin-top: 0.75rem !important;
+}
+
+.compact-mode .p-6 {
+  padding: 1rem !important;
+}
+
+.compact-mode .p-4 {
+  padding: 0.75rem !important;
+}
+
+/* Font size classes */
+.font-small {
+  font-size: 14px;
+}
+
+.font-medium {
+  font-size: 16px;
+}
+
+.font-large {
+  font-size: 18px;
+}
+
+.font-xl {
+  font-size: 20px;
+}
+
+/* Hardware acceleration */
+.hardware-acceleration * {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000;
+}
+
+/* Smooth scrolling */
+.smooth-scrolling {
+  scroll-behavior: smooth;
+}
+
+.smooth-scrolling * {
+  scroll-behavior: smooth;
+}
+
+/* Theme-specific utilities */
+.theme-aware-bg {
+  background: hsl(var(--chart-1) / 0.1);
+}
+
+.theme-aware-text {
+  color: hsl(var(--chart-1));
+}
+
+.theme-aware-border {
+  border-color: hsl(var(--chart-1) / 0.2);
+}
