@@ -1,23 +1,24 @@
 "use client"
 
 import { createContext, useContext, type ReactNode } from "react"
-import { useAuth } from "@/hooks/use-auth"
-import type { User } from "@/lib/auth"
+import { useAuthClient } from "@/hooks/use-auth-client"
+import type { User, LoginCredentials, RegisterCredentials, AuthResult } from "@/lib/auth/types"
 
 interface AuthContextType {
   user: User | null
   isLoading: boolean
   error: string | null
   isAuthenticated: boolean
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
+  signIn: (credentials: LoginCredentials) => Promise<AuthResult>
+  signUp: (credentials: RegisterCredentials) => Promise<AuthResult>
   signOut: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const auth = useAuth()
+  const auth = useAuthClient()
 
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>
 }

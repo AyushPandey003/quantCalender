@@ -78,7 +78,6 @@ export function useOrderBook(symbol: string) {
       return generateMockOrderBook(symbol, currentPrice)
     },
     staleTime: isConnected ? 2_000 : 5_000, // 2s if connected, 5s if not
-    cacheTime: 60_000, // 1 minute
     refetchInterval: isConnected ? 3_000 : 5_000, // 3s if connected, 5s if not
   })
 }

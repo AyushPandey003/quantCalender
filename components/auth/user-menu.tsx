@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useAuthContext } from "./auth-provider"
 import { SignInDialog } from "./sign-in-dialog"
+
 import { Settings, LogOut, Crown, BarChart3 } from "lucide-react"
 import Link from "next/link"
 
@@ -28,10 +29,6 @@ export function UserMenu() {
         <SignInDialog open={showSignInDialog} onOpenChange={setShowSignInDialog} />
       </>
     )
-  }
-
-  const handleSignOut = async () => {
-    await signOut()
   }
 
   const getPlanBadge = (plan: string) => {
@@ -51,6 +48,11 @@ export function UserMenu() {
       default:
         return <Badge variant="secondary">Free</Badge>
     }
+  }
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = "/"; // Redirect to home after sign out
   }
 
   return (
