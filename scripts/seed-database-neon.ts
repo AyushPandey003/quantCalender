@@ -59,7 +59,6 @@ async function main() {
           theme: "system",
           notifications: true,
           emailNotifications: true,
-          pushNotifications: false,
         })
 
         console.log(`✅ Created user: ${userData.name}`)
