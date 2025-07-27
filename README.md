@@ -118,5 +118,3 @@ styles/             # Global styles (Tailwind, CSS)
 - [jose](https://github.com/panva/jose) for JWT handling
 
 ---
-
-Feel free to further customize this README to match your project's branding, add screenshots, or expand on any section!
