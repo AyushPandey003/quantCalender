@@ -1,3 +1,5 @@
+const { themeable } = require("tailwindcss-themeable");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
@@ -103,5 +105,8 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    themeable(require("./lib/themes").themes),
+  ],
 }

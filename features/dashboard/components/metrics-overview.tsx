@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, Activity, DollarSign, BarChart3, Zap } from "
 import { useCalendarStore } from "@/features/calendar/stores/calendar-store"
 import { useMarketMetrics } from "@/services/hooks/use-market-metrics"
 import { useMarketDataContext } from "@/shared/contexts/market-data-context"
+import { useThemeSettingsContext } from "@/components/theme-settings-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
@@ -13,6 +14,7 @@ export function MetricsOverview() {
   const { selectedSymbol } = useCalendarStore()
   const { data: metrics, isLoading } = useMarketMetrics(selectedSymbol)
   const { getTokenPrice, connectionState, connectToSymbol } = useMarketDataContext()
+  const { getChartColors } = useThemeSettingsContext()
   const [realTimePrice, setRealTimePrice] = useState<number | null>(null)
   const [priceDirection, setPriceDirection] = useState<'up' | 'down' | 'neutral'>('neutral')
 
@@ -67,6 +69,7 @@ export function MetricsOverview() {
   // Use real-time price if available, otherwise fall back to metrics
   const currentPrice = liveTokenData?.price || metrics?.currentPrice || 0
   const currentVolume = liveTokenData?.volume || metrics?.volume24h || 0
+  const chartColors = getChartColors()
 
   const metricCards = [
     {
@@ -74,7 +77,7 @@ export function MetricsOverview() {
       value: currentPrice ? `$${currentPrice.toLocaleString()}` : "N/A",
       change: metrics?.priceChange24h || 0,
       icon: DollarSign,
-      color: "text-green-600",
+      color: chartColors[1], // Use theme color
       isRealTime: !!liveTokenData?.price,
       direction: priceDirection
     },
@@ -83,7 +86,7 @@ export function MetricsOverview() {
       value: metrics?.volatility24h ? `${metrics.volatility24h.toFixed(2)}%` : "N/A",
       change: metrics?.volatilityChange || 0,
       icon: TrendingUp,
-      color: "text-red-600",
+      color: chartColors[2], // Use theme color
       isRealTime: false
     },
     {
@@ -91,7 +94,7 @@ export function MetricsOverview() {
       value: currentVolume ? `$${(currentVolume / 1000000).toFixed(1)}M` : "N/A",
       change: metrics?.volumeChange || 0,
       icon: BarChart3,
-      color: "text-blue-600",
+      color: chartColors[0], // Use theme color
       isRealTime: !!liveTokenData?.volume
     },
     {
@@ -99,7 +102,7 @@ export function MetricsOverview() {
       value: metrics?.liquidityScore ? metrics.liquidityScore.toFixed(1) : "N/A",
       change: metrics?.liquidityChange || 0,
       icon: Activity,
-      color: "text-purple-600",
+      color: chartColors[3] || chartColors[0], // Use theme color
       isRealTime: false
     },
   ]
@@ -113,7 +116,7 @@ export function MetricsOverview() {
             {connectionState === "connected" ? "Live" : "Historical"}
           </Badge>
           {connectionState === "connected" && (
-            <div className="flex items-center space-x-1 text-sm text-green-600">
+            <div className="flex items-center space-x-1 text-sm" style={{ color: chartColors[1] }}>
               <Zap className="h-3 w-3" />
               <span>Real-time</span>
             </div>
@@ -137,7 +140,7 @@ export function MetricsOverview() {
                   <Zap className="h-3 w-3 text-yellow-500" />
                 )}
               </CardTitle>
-              <metric.icon className={`h-4 w-4 ${metric.color}`} />
+              <metric.icon className="h-4 w-4" style={{ color: metric.color }} />
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold transition-colors duration-300 ${
