@@ -16,7 +16,7 @@ function createConnection() {
     max: 1,
     idle_timeout: 20,
     max_lifetime: 60 * 30,
-    ssl: process.env.NODE_ENV === "production" ? "require" : false,
+    ssl: "require", // Always require SSL for Neon and cloud Postgres
   })
 }
 
@@ -66,8 +66,8 @@ export async function checkDBHealth() {
   }
 }
 
-// Graceful shutdown
-if (typeof process !== "undefined") {
+// Graceful shutdown (only in Node.js environment, not Edge Runtime)
+if (typeof process !== "undefined" && typeof process.on === "function") {
   process.on("beforeExit", async () => {
     await disconnectDB()
   })

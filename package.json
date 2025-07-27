@@ -20,6 +20,7 @@
     "@cloudflare/workers-types": "latest",
     "@electric-sql/pglite": "latest",
     "@emotion/is-prop-valid": "latest",
+    "@hookform/resolvers": "^5.2.0",
     "@libsql/client": "latest",
     "@libsql/client-wasm": "latest",
     "@neondatabase/serverless": "latest",
@@ -88,6 +89,7 @@
     "tailwindcss-animate": "^1.0.7",
     "use-sync-external-store": "latest",
     "vaul": "latest",
+    "zod": "^4.0.10",
     "zustand": "latest"
   },
   "devDependencies": {

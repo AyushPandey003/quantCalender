@@ -1,6 +1,54 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { getCurrentUserPayload } from "@/lib/auth-middleware"
+import { jwtVerify } from "jose"
+
+// JWT Configuration for middleware (lightweight)
+const getJWTSecret = () => {
+  const secret = process.env.JWT_SECRET
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET must be at least 32 characters long")
+  }
+  return new TextEncoder().encode(secret)
+}
+
+interface UserPayload {
+  userId: string
+  email: string
+  iat: number
+  exp: number
+}
+
+/**
+ * Lightweight user payload verification for middleware
+ * Only verifies JWT without database access
+ */
+async function getCurrentUserPayload(request: NextRequest): Promise<UserPayload | null> {
+  try {
+    const token = request.cookies.get("access-token")?.value
+
+    if (!token) {
+      return null
+    }
+
+    const secret = getJWTSecret()
+    const { payload } = await jwtVerify(token, secret)
+
+    // Ensure the payload has the required fields
+    if (typeof payload.userId === "string" && typeof payload.email === "string") {
+      return {
+        userId: payload.userId,
+        email: payload.email,
+        iat: payload.iat as number,
+        exp: payload.exp as number,
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error("Token verification failed in middleware:", error)
+    return null
+  }
+}
 
 // Define protected routes
 const protectedRoutes = ["/dashboard", "/settings", "/calendar"]
